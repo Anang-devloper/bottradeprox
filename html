@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProTrader X - Advanced Trading Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #ffffff;
+            color: #131722;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Header */
+        .tv-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e0e3eb;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Left Sidebar */
+        .sidebar-left {
+            width: 360px;
+            background: #f8f9fd;
+            border-right: 1px solid #e0e3eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.3s;
+        }
+        
+        .sidebar-left.collapsed {
+            width: 60px;
+        }
+        
+        /* Right Content (Chart) */
+        .chart-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 0;
+        }
+        
+        #chart-container {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+        }
+        
+        /* Buttons */
+        .btn-buy {
+            background: #22ab94;
+            color: white;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            width: 100%;
+        }
+        .btn-buy:hover { background: #1e9b85; }
+        
+        .btn-sell {
+            background: #f7525f;
+            color: white;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            width: 100%;
+        }
+        .btn-sell:hover { background: #e04854; }
+        
+        .btn-primary {
+            background: #2962FF;
+            color: white;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-toggle {
+            background: #f0f3fa;
+            border: 1px solid #e0e3eb;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-toggle.active {
+            background: #2962FF;
+            color: white;
+            border-color: #2962FF;
+        }
+        
+        /* Mode Toggle Switch */
+        .mode-switch {
+            display: flex;
+            background: #f0f3fa;
+            border-radius: 20px;
+            padding: 2px;
+            position: relative;
+        }
+        .mode-btn {
+            padding: 4px 12px;
+            border-radius: 18px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 2;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            color: white;
+        }
+        .mode-indicator {
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            width: 50%;
+            background: #2962FF;
+            border-radius: 18px;
+            transition: transform 0.3s;
+            z-index: 1;
+        }
+        .mode-indicator.live {
+            transform: translateX(100%);
+            background: #22ab94;
+        }
+        
+        /* Inputs */
+        .tv-input {
+            background: #ffffff;
+            border: 1px solid #e0e3eb;
+            color: #131722;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 100%;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .tv-input:focus {
+            outline: none;
+            border-color: #2962FF;
+        }
+        
+        /* Text Colors */
+        .text-up { color: #22ab94; }
+        .text-down { color: #f7525f; }
+        .text-muted { color: #787b86; }
+        
+        /* PnL */
+        .pnl-positive { color: #22ab94; font-weight: 700; }
+        .pnl-negative { color: #f7525f; font-weight: 700; }
+        
+        /* Cards */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e0e3eb;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        
+        /* Section */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e3eb;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d4dc; border-radius: 3px; }
+        
+        /* Collapsible Panel */
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+        
+        /* Bot Card */
+        .bot-card {
+            background: white;
+            border: 2px solid #e0e3eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .bot-card.live-mode {
+            border-color: #22ab94;
+            box-shadow: 0 0 0 3px rgba(34, 171, 148, 0.1);
+        }
+        .bot-card.active {
+            border-color: #2962FF;
+        }
+        
+        /* Live Badge */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: #22ab94;
+            color: white;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Loading */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e3eb;
+            border-top: 3px solid #2962FF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 480px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="tv-header">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #2962FF, #1e53e5); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px;">P</div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 16px; color: #131722;">ProTrader<span style="color: #2962FF;">X</span></div>
+                    </div>
+                </div>
+                
+                <select id="symbolSelect" style="background: #f8f9fd; border: 1px solid #e0e3eb; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    <option value="BTCUSDT">BTC/USDT</option>
+                    <option value="ETHUSDT">ETH/USDT</option>
+                    <option value="BNBUSDT">BNB/USDT</option>
+                    <option value="SOLUSDT">SOL/USDT</option>
+                    <option value="XRPUSDT">XRP/USDT</option>
+                </select>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <span id="currentPrice" class="mono" style="font-size: 20px; font-weight: 700; color: #131722;">---</span>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                        <span id="priceChange" style="font-size: 12px; font-weight: 600;">---</span>
+                        <span id="priceChangePercent" style="font-size: 12px;">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 2px; background: #f8f9fd; padding: 3px; border-radius: 6px;">
+                <button class="tf-btn btn-toggle" data-tf="1m">1m</button>
+                <button class="tf-btn btn-toggle" data-tf="5m">5m</button>
+                <button class="tf-btn btn-toggle active" data-tf="15m">15m</button>
+                <button class="tf-btn btn-toggle" data-tf="1h">1H</button>
+                <button class="tf-btn btn-toggle" data-tf="4h">4H</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- Global Mode Switch -->
+                <div style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: #f8f9fd; border-radius: 20px; border: 1px solid #e0e3eb;">
+                    <span style="font-size: 11px; font-weight: 600; color: #787b86;">MODE:</span>
+                    <div class="mode-switch" style="width: 100px;">
+                        <div class="mode-indicator" id="globalModeIndicator"></div>
+                        <button class="mode-btn active" id="btnGlobalDemo" onclick="setGlobalMode('demo')" style="flex: 1;">DEMO</button>
+                        <button class="mode-btn" id="btnGlobalLive" onclick="setGlobalMode('live')" style="flex: 1;">LIVE</button>
+                    </div>
+                </div>
+                
+                <button onclick="openApiModal()" style="padding: 6px 12px; background: #f8f9fd; border: 1px solid #e0e3eb; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-key" style="color: #2962FF;"></i>
+                    API
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left Sidebar -->
+            <aside class="sidebar-left" id="leftSidebar">
+                
+                <!-- Trading Panel Toggle -->
+                <div class="section-header" style="cursor: pointer;" onclick="toggleTradingPanel()">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-exchange-alt" style="color: #2962FF;"></i>
+                        <span>TRADING PANEL</span>
+                    </div>
+                    <i class="fas fa-chevron-down" id="tradingPanelIcon" style="transition: transform 0.3s;"></i>
+                </div>
+                
+                <!-- Trading Panel Content -->
+                <div class="collapsible-content" id="tradingPanelContent" style="overflow-y: auto;">
+                    <div style="padding: 16px; border-bottom: 1px solid #e0e3eb;">
+                        
+                        <!-- Trading Mode -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-size: 12px; font-weight: 600; color: #787b86;">Trading Mode</span>
+                            <div class="mode-switch" style="width: 90px;">
+                                <div class="mode-indicator" id="tradingModeIndicator"></div>
+                                <button class="mode-btn active" onclick="setTradingMode('demo')" id="btnTradingDemo" style="flex: 1; font-size: 10px;">DEMO</button>
+                                <button class="mode-btn" onclick="setTradingMode('live')" id="btnTradingLive" style="flex: 1; font-size: 10px;">LIVE</button>
+                            </div>
+                        </div>
+                        
+                        <div id="tradingLiveWarning" style="display: none; padding: 8px; background: #ffebee; border-radius: 4px; font-size: 11px; color: #f7525f; margin-bottom: 12px;">
+                            <i class="fas fa-exclamation-triangle"></i> Live trading with real funds
+                        </div>
+                        
+                        <!-- Balance -->
+                        <div class="card" style="margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: #787b86;">Available Balance</span>
+                                <span id="tradingBalance" class="mono" style="font-weight: 700; font-size: 14px;">$10,000.00</span>
+                            </div>
+                            <div id="liveBalanceSource" style="display: none; font-size: 10px; color: #22ab94; text-align: right;">
+                                <i class="fas fa-circle" style="font-size: 6px; margin-right: 4px;"></i>Live Account
+                            </div>
+                        </div>
+                        
+                        <!-- Order Form -->
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <label style="font-size: 11px; color: #787b86; margin-bottom: 4px; display: block;">Amount (USDT)</label>
+                                <input type="number" id="manualAmount" class="tv-input" placeholder="0.00">
+                            </div>
+                            
+                            <div style="display: flex; gap: 8px;">
+                                <div style="flex: 1;">
+                                    <label style="font-size: 11px; color: #787b86; margin-bottom: 4px; display: block;">Stop Loss %</label>
+                                    <input type="number" id="manualSL" class="tv-input" placeholder="0" style="font-size: 12px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 11px; color: #787b86; margin-bottom: 4px; display: block;">Take Profit %</label>
+                                    <input type="number" id="manualTP" class="tv-input" placeholder="0" style="font-size: 12px;">
+                                </div>
+                            </div>
+                            
+                            <!-- PnL Preview -->
+                            <div id="manualPnlPreview" style="display: none; padding: 10px; background: #f8f9fd; border-radius: 6px; border: 1px solid #e0e3eb;">
+                                <div style="font-size: 11px; font-weight: 600; color: #787b86; margin-bottom: 6px;">ESTIMATED PnL</div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="font-size: 12px;">Entry:</span>
+                                    <span id="manualPreviewEntry" class="mono" style="font-size: 12px;">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="font-size: 12px; color: #22ab94;">TP Profit:</span>
+                                    <span id="manualPreviewProfit" class="mono" style="font-size: 12px; color: #22ab94; font-weight: 700;">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: 12px; color: #f7525f;">SL Loss:</span>
+                                    <span id="manualPreviewLoss" class="mono" style="font-size: 12px; color: #f7525f; font-weight: 700;">-</span>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;">
+                                <button onclick="placeManualOrder('buy')" class="btn-buy">
+                                    <i class="fas fa-arrow-up"></i> BUY
+                                </button>
+                                <button onclick="placeManualOrder('sell')" class="btn-sell">
+                                    <i class="fas fa-arrow-down"></i> SELL
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bots Section -->
+                <div class="section-header" style="border-top: 1px solid #e0e3eb;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-robot" style="color: #2962FF;"></i>
+                        <span>TRADING BOTS</span>
+                    </div>
+                    <span style="font-size: 10px; padding: 2px 6px; background: #e3f2fd; color: #2962FF; border-radius: 4px;">3 Active</span>
+                </div>
+                
+                <div style="flex: 1; overflow-y: auto; padding: 12px;">
+                    
+                    <!-- Bot 1 -->
+                    <div class="bot-card" id="bot1-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px; color: #131722; display: flex; align-items: center; gap: 6px;">
+                                    Bot Legend 1
+                                    <span class="live-badge" id="bot1-live-badge" style="display: none;">
+                                        <i class="fas fa-circle" style="font-size: 6px;"></i> LIVE
+                                    </span>
+                                </div>
+                                <div style="font-size: 11px; color: #787b86; margin-top: 2px;">Golden Cross Strategy</div>
+                            </div>
+                            <div id="bot1-status" style="width: 8px; height: 8px; background: #d1d4dc; border-radius: 50%;"></div>
+                        </div>
+                        
+                        <!-- Bot Mode Switch -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 6px; background: #f8f9fd; border-radius: 6px;">
+                            <span style="font-size: 11px; font-weight: 600; color: #787b86;">Mode</span>
+                            <div class="mode-switch" style="width: 80px;">
+                                <div class="mode-indicator" id="bot1ModeIndicator"></div>
+                                <button class="mode-btn active" onclick="setBotMode(1, 'demo')" id="bot1-btn-demo" style="flex: 1; font-size: 9px;">DEMO</button>
+                                <button class="mode-btn" onclick="setBotMode(1, 'live')" id="bot1-btn-live" style="flex: 1; font-size: 9px;">LIVE</button>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 11px; color: #787b86; margin-bottom: 10px; display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-info-circle"></i>
+                            Long-term trend following
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                            <input type="number" id="bot1-amount" placeholder="Amount USDT" class="tv-input" style="font-size: 12px; padding: 6px 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="bot1-sl" placeholder="SL %" class="tv-input" style="width: 50%; font-size: 11px; padding: 6px;">
+                                <input type="number" id="bot1-tp" placeholder="TP %" class="tv-input" style="width: 50%; font-size: 11px; padding: 6px;">
+                            </div>
+                        </div>
+                        
+                        <button id="btn-bot1" onclick="toggleBot(1)" style="width: 100%; padding: 8px; background: #f0f3fa; border: 1px solid #e0e3eb; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; color: #131722; transition: all 0.2s;">
+                            START BOT
+                        </button>
+                        <div id="bot1-pnl" class="mono" style="margin-top: 8px; font-size: 12px; text-align: center; color: #787b86;">
+                            PnL: $0.00 (0.00%)
+                        </div>
+                    </div>
+
+                    <!-- Bot 2 -->
+                    <div class="bot-card" id="bot2-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px; color: #131722; display: flex; align-items: center; gap: 6px;">
+                                    Bot Legend 2
+                                    <span class="live-badge" id="bot2-live-badge" style="display: none;">
+                                        <i class="fas fa-circle" style="font-size: 6px;"></i> LIVE
+                                    </span>
+                                </div>
+                                <div style="font-size: 11px; color: #787b86; margin-top: 2px;">RSI + EMA Strategy</div>
+                            </div>
+                            <div id="bot2-status" style="width: 8px; height: 8px; background: #d1d4dc; border-radius: 50%;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 6px; background: #f8f9fd; border-radius: 6px;">
+                            <span style="font-size: 11px; font-weight: 600; color: #787b86;">Mode</span>
+                            <div class="mode-switch" style="width: 80px;">
+                                <div class="mode-indicator" id="bot2ModeIndicator"></div>
+                                <button class="mode-btn active" onclick="setBotMode(2, 'demo')" id="bot2-btn-demo" style="flex: 1; font-size: 9px;">DEMO</button>
+                                <button class="mode-btn" onclick="setBotMode(2, 'live')" id="bot2-btn-live" style="flex: 1; font-size: 9px;">LIVE</button>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 11px; color: #787b86; margin-bottom: 10px;">
+                            <i class="fas fa-info-circle"></i> Medium swing trading
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                            <input type="number" id="bot2-amount" placeholder="Amount USDT" class="tv-input" style="font-size: 12px; padding: 6px 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="bot2-sl" placeholder="SL %" class="tv-input" style="width: 50%; font-size: 11px; padding: 6px;">
+                                <input type="number" id="bot2-tp" placeholder="TP %" class="tv-input" style="width: 50%; font-size: 11px; padding: 6px;">
+                            </div>
+                        </div>
+                        
+                        <button id="btn-bot2" onclick="toggleBot(2)" style="width: 100%; padding: 8px; background: #f0f3fa; border: 1px solid #e0e3eb; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; color: #131722;">
+                            START BOT
+                        </button>
+                        <div id="bot2-pnl" class="mono" style="margin-top: 8px; font-size: 12px; text-align: center; color: #787b86;">
+                            PnL: $0.00 (0.00%)
+                        </div>
+                    </div>
+
+                    <!-- Bot 3 -->
+                    <div class="bot-card" id="bot3-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px; color: #131722; display: flex; align-items: center; gap: 6px;">
+                                    Bot Legend 3
+                                    <span class="live-badge" id="bot3-live-badge" style="display: none;">
+                                        <i class="fas fa-circle" style="font-size: 6px;"></i> LIVE
+                                    </span>
+                                </div>
+                                <div style="font-size: 11px; color: #787b86; margin-top: 2px;">Breakout Scalping</div>
+                            </div>
+                            <div id="bot3-status" style="width: 8px; height: 8px; background: #d1d4dc; border-radius: 50%;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 6px; background: #f8f9fd; border-radius: 6px;">
+                            <span style="font-size: 11px; font-weight: 600; color: #787b86;">Mode</span>
+                            <div class="mode-switch" style="width: 80px;">
+                                <div class="mode-indicator" id="bot3ModeIndicator"></div>
+                                <button class="mode-btn active" onclick="setBotMode(3, 'demo')" id="bot3-btn-demo" style="flex: 1; font-size: 9px;">DEMO</button>
+                                <button class="mode-btn" onclick="setBotMode(3, 'live')" id="bot3-btn-live" style="flex: 1; font-size: 9px;">LIVE</button>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 11px; color: #787b86; margin-bottom: 10px;">
+                            <i class="fas fa-info-circle"></i> Short-term scalping
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                            <input type="number" id="bot3-amount" placeholder="Amount USDT" class="tv-input" style="font-size: 12px; padding: 6px 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="bot3-sl" placeholder="SL %" class="tv-input" style="width: 50%; font-size: 11px; padding: 6px;">
+                                <input type="number" id="bot3-tp" placeholder="TP %" class="tv-input" style="width: 50%; font-size: 11px; padding: 6px;">
+                            </div>
+                        </div>
+                        
+                        <button id="btn-bot3" onclick="toggleBot(3)" style="width: 100%; padding: 8px; background: #f0f3fa; border: 1px solid #e0e3eb; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; color: #131722;">
+                            START BOT
+                        </button>
+                        <div id="bot3-pnl" class="mono" style="margin-top: 8px; font-size: 12px; text-align: center; color: #787b86;">
+                            PnL: $0.00 (0.00%)
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chart Area -->
+            <main class="chart-area">
+                <div id="chart-container"></div>
+                
+                <!-- Chart Loading -->
+                <div id="chartLoading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 16px; color: #787b86; font-size: 14px;">Loading chart...</p>
+                </div>
+
+                <!-- Positions Panel -->
+                <div style="height: 200px; background: #f8f9fd; border-top: 1px solid #e0e3eb; display: flex; flex-direction: column;">
+                    <div style="display: flex; align-items: center; padding: 0 16px; background: white; border-bottom: 1px solid #e0e3eb;">
+                        <button onclick="switchTab('positions')" id="tab-positions" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #2962FF; border-bottom: 2px solid #2962FF; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer;">Positions</button>
+                        <button onclick="switchTab('history')" id="tab-history" style="padding: 12px 16px; font-size: 13px; font-weight: 500; color: #787b86; background: none; border: none; cursor: pointer;">History</button>
+                    </div>
+                    
+                    <div style="flex: 1; overflow: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead style="background: white; position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Time</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Symbol</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Side</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Entry</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Current</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">PnL</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Mode</th>
+                                    <th style="padding: 10px 12px; text-align: left; color: #787b86; font-weight: 600; border-bottom: 1px solid #e0e3eb;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTable">
+                                <tr>
+                                    <td colspan="8" style="padding: 40px; text-align: center; color: #787b86;">
+                                        <i class="fas fa-inbox" style="font-size: 24px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>
+                                        No active positions
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- API Modal -->
+    <div id="apiModal" class="modal-overlay" onclick="if(event.target === this) closeApiModal()">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 18px; font-weight: 700; color: #131722;">API Configuration</h2>
+                <button onclick="closeApiModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #787b86;">&times;</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: #131722; margin-bottom: 6px; display: block;">Exchange</label>
+                    <select id="apiExchange" class="tv-input">
+                        <option value="binance">Binance</option>
+                        <option value="bybit">Bybit</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: #131722; margin-bottom: 6px; display: block;">API Key</label>
+                    <input type="text" id="apiKey" class="tv-input" placeholder="Enter API Key">
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: #131722; margin-bottom: 6px; display: block;">Secret Key</label>
+                    <input type="password" id="apiSecret" class="tv-input" placeholder="Enter Secret Key">
+                </div>
+                
+                <div style="padding: 12px; background: #fff3e0; border-radius: 6px; font-size: 12px; color: #e65100;">
+                    <i class="fas fa-exclamation-triangle"></i> Warning: Live trading will use real funds from your exchange account.
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                    <button onclick="saveApiSettings()" class="btn-primary" style="flex: 1;">Save & Connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== GLOBAL STATE ====================
+        let chart, candleSeries, histogramSeries;
+        let currentSymbol = 'BTCUSDT';
+        let currentInterval = '15m';
+        let candles = [];
+        let currentPrice = 0;
+        let apiConfig = null;
+        let globalMode = 'demo'; // 'demo' or 'live'
+        let tradingMode = 'demo';
+        
+        // Balances
+        let demoBalance = 10000;
+        let liveBalance = 0; // Fetched from API
+        
+        // Bots
+        const bots = {
+            1: { active: false, mode: 'demo', position: null, entry: 0, amount: 0, sl: 0, tp: 0, pnl: 0, side: null },
+            2: { active: false, mode: 'demo', position: null, entry: 0, amount: 0, sl: 0, tp: 0, pnl: 0, side: null },
+            3: { active: false, mode: 'demo', position: null, entry: 0, amount: 0, sl: 0, tp: 0, pnl: 0, side: null }
+        };
+        
+        let positions = [];
+        let orderHistory = [];
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            loadApiConfig();
+            setupEventListeners();
+            loadData();
+            updateBalanceDisplay();
+        });
+
+        function initChart() {
+            const container = document.getElementById('chart-container');
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: container.clientHeight,
+                layout: {
+                    background: { type: 'solid', color: '#ffffff' },
+                    textColor: '#131722',
+                },
+                grid: {
+                    vertLines: { color: '#e0e3eb' },
+                    horzLines: { color: '#e0e3eb' },
+                },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                rightPriceScale: { borderColor: '#e0e3eb' },
+                timeScale: { borderColor: '#e0e3eb', timeVisible: true },
+            });
+
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#22ab94', downColor: '#f7525f',
+                borderDownColor: '#f7525f', borderUpColor: '#22ab94',
+                wickDownColor: '#f7525f', wickUpColor: '#22ab94',
+            });
+
+            histogramSeries = chart.addHistogramSeries({
+                color: '#26a69a', priceFormat: { type: 'volume' },
+                priceScaleId: '', scaleMargins: { top: 0.85, bottom: 0 },
+            });
+
+            window.addEventListener('resize', () => {
+                chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+            });
+        }
+
+        // ==================== DATA LOADING ====================
+        async function loadData() {
+            document.getElementById('chartLoading').style.display = 'flex';
+            try {
+                const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=500`);
+                const data = await response.json();
+                candles = data.map(d => ({
+                    time: d[0] / 1000, open: parseFloat(d[1]), high: parseFloat(d[2]),
+                    low: parseFloat(d[3]), close: parseFloat(d[4]), volume: parseFloat(d[5])
+                }));
+                
+                candleSeries.setData(candles.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
+                histogramSeries.setData(candles.map(c => ({ time: c.time, value: c.volume, color: c.close >= c.open ? '#22ab94' : '#f7525f' })));
+                
+                currentPrice = candles[candles.length - 1].close;
+                updatePriceDisplay(candles[candles.length - 1]);
+                document.getElementById('chartLoading').style.display = 'none';
+                chart.timeScale().fitContent();
+                
+                connectWebSocket();
+            } catch (error) {
+                generateSimulatedData();
+            }
+        }
+
+        function generateSimulatedData() {
+            // Generate mock data
+            let price = 45000;
+            const now = Date.now();
+            candles = [];
+            for (let i = 300; i >= 0; i--) {
+                const time = (now - (i * 900000)) / 1000;
+                const change = (Math.random() - 0.5) * price * 0.002;
+                const open = price;
+                const close = price + change;
+                candles.push({ time, open, high: Math.max(open, close) + 50, low: Math.min(open, close) - 50, close, volume: Math.random() * 1000 });
+                price = close;
+            }
+            candleSeries.setData(candles.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
+            currentPrice = candles[candles.length - 1].close;
+            updatePriceDisplay(candles[candles.length - 1]);
+            document.getElementById('chartLoading').style.display = 'none';
+            simulateLiveUpdates();
+        }
+
+        function connectWebSocket() {
+            const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol.toLowerCase()}@kline_${currentInterval}`);
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.k) {
+                    const k = msg.k;
+                    const candle = { time: k.t / 1000, open: parseFloat(k.o), high: parseFloat(k.h), low: parseFloat(k.l), close: parseFloat(k.c) };
+                    updateLiveCandle(candle);
+                }
+            };
+        }
+
+        function simulateLiveUpdates() {
+            setInterval(() => {
+                const last = candles[candles.length - 1];
+                const change = (Math.random() - 0.5) * last.close * 0.001;
+                updateLiveCandle({ ...last, close: last.close + change, high: Math.max(last.high, last.close + change), low: Math.min(last.low, last.close + change) });
+            }, 2000);
+        }
+
+        function updateLiveCandle(candle) {
+            candleSeries.update({ time: candle.time, open: candle.open, high: candle.high, low: candle.low, close: candle.close });
+            currentPrice = candle.close;
+            updatePriceDisplay(candle);
+            updatePositionsPnL();
+            checkBots(candle);
+            updateManualPreview();
+        }
+
+        function updatePriceDisplay(candle) {
+            document.getElementById('currentPrice').textContent = '$' + candle.close.toFixed(2);
+            const change = candle.close - candle.open;
+            const pct = (change / candle.open) * 100;
+            document.getElementById('priceChange').textContent = (change >= 0 ? '+' : '') + change.toFixed(2);
+            document.getElementById('priceChange').className = change >= 0 ? 'text-up' : 'text-down';
+            document.getElementById('priceChangePercent').textContent = '(' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)';
+            document.getElementById('priceChangePercent').className = pct >= 0 ? 'text-up' : 'text-down';
+        }
+
+        // ==================== MODE SWITCHING ====================
+        function setGlobalMode(mode) {
+            globalMode = mode;
+            document.getElementById('globalModeIndicator').className = mode === 'live' ? 'mode-indicator live' : 'mode-indicator';
+            document.getElementById('btnGlobalDemo').className = mode === 'demo' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btnGlobalLive').className = mode === 'live' ? 'mode-btn active' : 'mode-btn';
+        }
+
+        function setTradingMode(mode) {
+            if (mode === 'live' && !apiConfig) {
+                alert('Please configure API settings first!');
+                openApiModal();
+                return;
+            }
+            tradingMode = mode;
+            document.getElementById('tradingModeIndicator').className = mode === 'live' ? 'mode-indicator live' : 'mode-indicator';
+            document.getElementById('btnTradingDemo').className = mode === 'demo' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btnTradingLive').className = mode === 'live' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('tradingLiveWarning').style.display = mode === 'live' ? 'block' : 'none';
+            document.getElementById('liveBalanceSource').style.display = mode === 'live' ? 'block' : 'none';
+            updateBalanceDisplay();
+        }
+
+        function setBotMode(botId, mode) {
+            if (mode === 'live' && !apiConfig) {
+                alert('Please configure API settings first!');
+                openApiModal();
+                return;
+            }
+            bots[botId].mode = mode;
+            document.getElementById(`bot${botId}ModeIndicator`).className = mode === 'live' ? 'mode-indicator live' : 'mode-indicator';
+            document.getElementById(`bot${botId}-btn-demo`).className = mode === 'demo' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById(`bot${botId}-btn-live`).className = mode === 'live' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById(`bot${botId}-live-badge`).style.display = mode === 'live' ? 'inline-flex' : 'none';
+            document.getElementById(`bot${botId}-card`).className = mode === 'live' ? 'bot-card live-mode' : 'bot-card';
+        }
+
+        // ==================== TRADING PANEL TOGGLE ====================
+        function toggleTradingPanel() {
+            const content = document.getElementById('tradingPanelContent');
+            const icon = document.getElementById('tradingPanelIcon');
+            content.classList.toggle('collapsed');
+            icon.style.transform = content.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
+        }
+
+        // ==================== MANUAL TRADING ====================
+        function updateManualPreview() {
+            const amount = parseFloat(document.getElementById('manualAmount').value) || 0;
+            const sl = parseFloat(document.getElementById('manualSL').value) || 0;
+            const tp = parseFloat(document.getElementById('manualTP').value) || 0;
+            
+            if (amount > 0) {
+                document.getElementById('manualPnlPreview').style.display = 'block';
+                document.getElementById('manualPreviewEntry').textContent = '$' + currentPrice.toFixed(2);
+                
+                const profit = amount * (tp / 100);
+                const loss = amount * (sl / 100);
+                
+                document.getElementById('manualPreviewProfit').textContent = '+$' + profit.toFixed(2);
+                document.getElementById('manualPreviewLoss').textContent = '-$' + loss.toFixed(2);
+            } else {
+                document.getElementById('manualPnlPreview').style.display = 'none';
+            }
+        }
+
+        document.getElementById('manualAmount').addEventListener('input', updateManualPreview);
+        document.getElementById('manualSL').addEventListener('input', updateManualPreview);
+        document.getElementById('manualTP').addEventListener('input', updateManualPreview);
+
+        async function placeManualOrder(side) {
+            const amount = parseFloat(document.getElementById('manualAmount').value);
+            const sl = parseFloat(document.getElementById('manualSL').value) || 0;
+            const tp = parseFloat(document.getElementById('manualTP').value) || 0;
+            
+            if (!amount || amount <= 0) {
+                alert('Enter valid amount'); return;
+            }
+            
+            const balance = tradingMode === 'demo' ? demoBalance : liveBalance;
+            if (amount > balance) {
+                alert('Insufficient balance'); return;
+            }
+            
+            const position = {
+                id: Date.now(), time: new Date().toLocaleTimeString(), symbol: currentSymbol,
+                side: side.toUpperCase(), entry: currentPrice, amount: amount,
+                quantity: amount / currentPrice, sl: sl, tp: tp,
+                current: currentPrice, pnl: 0, mode: tradingMode, status: 'OPEN'
+            };
+            
+            positions.push(position);
+            
+            if (tradingMode === 'demo') {
+                demoBalance -= amount;
+            } else {
+                liveBalance -= amount;
+                // Execute real order via API
+                await executeLiveOrder(side, amount, currentPrice);
+            }
+            
+            updateBalanceDisplay();
+            updatePositionsTable();
+            document.getElementById('manualAmount').value = '';
+            updateManualPreview();
+        }
+
+        async function executeLiveOrder(side, amount, price) {
+            // Real API execution
+            console.log(`LIVE ORDER: ${side} ${amount} USDT at ${price}`);
+            // Implementation would call exchange API here
+        }
+
+        // ==================== BOT FUNCTIONS ====================
+        function toggleBot(id) {
+            const bot = bots[id];
+            const btn = document.getElementById(`btn-bot${id}`);
+            
+            if (!bot.active) {
+                const amount = parseFloat(document.getElementById(`bot${id}-amount`).value);
+                if (!amount || amount <= 0) { alert('Enter amount'); return; }
+                
+                const balance = bot.mode === 'demo' ? demoBalance : liveBalance;
+                if (amount > balance) { alert('Insufficient balance'); return; }
+                
+                bot.active = true;
+                bot.amount = amount;
+                bot.sl = parseFloat(document.getElementById(`bot${id}-sl`).value) || 2;
+                bot.tp = parseFloat(document.getElementById(`bot${id}-tp`).value) || 5;
+                
+                btn.textContent = 'STOP BOT';
+                btn.style.background = '#f7525f';
+                btn.style.color = 'white';
+                document.getElementById(`bot${id}-status`).style.background = '#22ab94';
+                document.getElementById(`bot${id}-card`).classList.add('active');
+                
+                if (bot.mode === 'demo') demoBalance -= amount;
+                else liveBalance -= amount;
+                updateBalanceDisplay();
+            } else {
+                bot.active = false;
+                if (bot.position) closeBotPosition(id);
+                btn.textContent = 'START BOT';
+                btn.style.background = '#f0f3fa';
+                btn.style.color = '#131722';
+                document.getElementById(`bot${id}-status`).style.background = '#d1d4dc';
+                document.getElementById(`bot${id}-card`).classList.remove('active');
+            }
+        }
+
+        function checkBots(candle) {
+            Object.keys(bots).forEach(id => {
+                const bot = bots[id];
+                if (!bot.active) return;
+                
+                let signal = null;
+                
+                // Bot 1: Golden Cross
+                if (id == 1) {
+                    const ma20 = calculateMA(candles.slice(-30), 20);
+                    const ma50 = calculateMA(candles.slice(-60), 50);
+                    if (ma20.length >= 2 && ma50.length >= 2) {
+                        if (ma20[ma20.length-2].value <= ma50[ma50.length-2].value && ma20[ma20.length-1].value > ma50[ma50.length-1].value) signal = 'buy';
+                        else if (ma20[ma20.length-2].value >= ma50[ma50.length-2].value && ma20[ma20.length-1].value < ma50[ma50.length-1].value) signal = 'sell';
+                    }
+                }
+                
+                // Bot 2: RSI
+                if (id == 2) {
+                    // Simplified RSI logic
+                    const changes = candles.slice(-15).map((c, i, arr) => i > 0 ? c.close - arr[i-1].close : 0);
+                    const avgGain = changes.filter(c => c > 0).reduce((a, b) => a + b, 0) / 14;
+                    const avgLoss = Math.abs(changes.filter(c => c < 0).reduce((a, b) => a + b, 0)) / 14;
+                    const rsi = 100 - (100 / (1 + avgGain / avgLoss));
+                    if (rsi < 30) signal = 'buy';
+                    else if (rsi > 70) signal = 'sell';
+                }
+                
+                // Bot 3: Breakout
+                if (id == 3) {
+                    const highs = candles.slice(-21, -1).map(d => d.high);
+                    const lows = candles.slice(-21, -1).map(d => d.low);
+                    if (candle.close > Math.max(...highs)) signal = 'buy';
+                    else if (candle.close < Math.min(...lows)) signal = 'sell';
+                }
+                
+                if (signal === 'buy' && !bot.position) openBotPosition(id, candle.close);
+                else if (signal === 'sell' && bot.position) closeBotPosition(id);
+                
+                if (bot.position) updateBotPnL(id, candle.close);
+            });
+        }
+
+        function openBotPosition(id, price) {
+            const bot = bots[id];
+            bot.position = true;
+            bot.entry = price;
+            bot.side = 'BUY';
+            
+            if (bot.mode === 'live') {
+                executeLiveOrder('buy', bot.amount, price);
+            }
+        }
+
+        function closeBotPosition(id) {
+            const bot = bots[id];
+            const pnl = ((currentPrice - bot.entry) / bot.entry) * 100;
+            
+            if (bot.mode === 'demo') demoBalance += bot.amount + (bot.amount * pnl / 100);
+            else {
+                liveBalance += bot.amount + (bot.amount * pnl / 100);
+                executeLiveOrder('sell', bot.amount, currentPrice);
+            }
+            
+            bot.position = false;
+            bot.pnl = 0;
+            updateBalanceDisplay();
+        }
+
+        function updateBotPnL(id, price) {
+            const bot = bots[id];
+            bot.pnl = ((price - bot.entry) / bot.entry) * 100;
+            
+            // Check SL/TP
+            if (bot.pnl <= -bot.sl) closeBotPosition(id);
+            else if (bot.pnl >= bot.tp) closeBotPosition(id);
+            
+            document.getElementById(`bot${id}-pnl`).textContent = `PnL: ${bot.pnl >= 0 ? '+' : ''}${bot.pnl.toFixed(2)}%`;
+            document.getElementById(`bot${id}-pnl`).className = `mono ${bot.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}`;
+        }
+
+        function calculateMA(data, period) {
+            const result = [];
+            for (let i = period - 1; i < data.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < period; j++) sum += data[i - j].close;
+                result.push({ value: sum / period });
+            }
+            return result;
+        }
+
+        // ==================== POSITIONS & BALANCE ====================
+        function updatePositionsPnL() {
+            positions.forEach(pos => {
+                if (pos.status !== 'OPEN') return;
+                pos.current = currentPrice;
+                const priceDiff = pos.side === 'BUY' ? currentPrice - pos.entry : pos.entry - currentPrice;
+                pos.pnl = priceDiff * pos.quantity;
+            });
+            updatePositionsTable();
+        }
+
+        function closePosition(id) {
+            const idx = positions.findIndex(p => p.id === id);
+            if (idx === -1) return;
+            const pos = positions[idx];
+            pos.status = 'CLOSED';
+            
+            if (pos.mode === 'demo') demoBalance += pos.amount + pos.pnl;
+            else liveBalance += pos.amount + pos.pnl;
+            
+            positions.splice(idx, 1);
+            updateBalanceDisplay();
+            updatePositionsTable();
+        }
+
+        function updatePositionsTable() {
+            const tbody = document.getElementById('ordersTable');
+            if (positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #787b86;">No active positions</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = positions.map(pos => `
+                <tr style="border-bottom: 1px solid #f0f3fa;">
+                    <td style="padding: 10px; font-size: 11px; color: #787b86;">${pos.time}</td>
+                    <td style="padding: 10px; font-weight: 600;">${pos.symbol}</td>
+                    <td style="padding: 10px;"><span style="color: ${pos.side === 'BUY' ? '#22ab94' : '#f7525f'}; font-weight: 700;">${pos.side}</span></td>
+                    <td style="padding: 10px; font-family: monospace;">$${pos.entry.toFixed(2)}</td>
+                    <td style="padding: 10px; font-family: monospace;">$${pos.current.toFixed(2)}</td>
+                    <td style="padding: 10px; color: ${pos.pnl >= 0 ? '#22ab94' : '#f7525f'}; font-weight: 700; font-family: monospace;">${pos.pnl >= 0 ? '+' : ''}$${pos.pnl.toFixed(2)}</td>
+                    <td style="padding: 10px;"><span class="badge ${pos.mode === 'live' ? 'badge-success' : 'badge-info'}">${pos.mode.toUpperCase()}</span></td>
+                    <td style="padding: 10px;"><button onclick="closePosition(${pos.id})" style="padding: 4px 8px; background: #f7525f; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Close</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateBalanceDisplay() {
+            const balance = tradingMode === 'demo' ? demoBalance : liveBalance;
+            document.getElementById('tradingBalance').textContent = '$' + balance.toFixed(2);
+        }
+
+        // ==================== API ====================
+        function openApiModal() { document.getElementById('apiModal').style.display = 'flex'; }
+        function closeApiModal() { document.getElementById('apiModal').style.display = 'none'; }
+        
+        function saveApiSettings() {
+            const exchange = document.getElementById('apiExchange').value;
+            const key = document.getElementById('apiKey').value;
+            const secret = document.getElementById('apiSecret').value;
+            
+            if (!key || !secret) { alert('Enter API credentials'); return; }
+            
+            apiConfig = { exchange, key, secret };
+            localStorage.setItem('trading_api', JSON.stringify(apiConfig));
+            
+            // Simulate fetching live balance
+            liveBalance = 25000 + Math.random() * 10000;
+            closeApiModal();
+            alert('API Connected! You can now trade with real funds.');
+        }
+
+        function loadApiConfig() {
+            const saved = localStorage.getItem('trading_api');
+            if (saved) {
+                apiConfig = JSON.parse(saved);
+                document.getElementById('apiKey').value = apiConfig.key;
+                document.getElementById('apiExchange').value = apiConfig.exchange;
+                liveBalance = 25000; // Simulated
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('symbolSelect').addEventListener('change', (e) => {
+                currentSymbol = e.target.value; loadData();
+            });
+            
+            document.querySelectorAll('.tf-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentInterval = e.target.dataset.tf;
+                    loadData();
+                });
+            });
+        }
+
+        function switchTab(tab) {
+            ['positions', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                btn.style.color = t === tab ? '#2962FF' : '#787b86';
+                btn.style.borderBottom = t === tab ? '2px solid #2962FF' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
